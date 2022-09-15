@@ -1,0 +1,54 @@
+export GITHUB_PROJECT=
+export GITHUB_OWNER=roman
+export DATAPLATFORM_HOME=01-environment/docker
+export DOCKER_COMPOSE_VERSION=1.25.3
+export PLATYS_VERSION=2.4.0
+export NETWORK_NAME=eth0
+export USERNAME=ubuntu
+export PASSWORD=ubuntu
+
+# Prepare Environment Variables 
+export PUBLIC_IP=$(curl ipinfo.io/ip)
+export DOCKER_HOST_IP=$(ip addr show ${NETWORK_NAME} | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
+
+# allow login by password
+sudo sed -i "s/.*PasswordAuthentication.*/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+echo "${USERNAME}:${PASSWORD}"|chpasswd
+sudo service sshd restart
+
+# add alias "dataplatform" to /etc/hosts
+echo "$DOCKER_HOST_IP     dataplatform" | sudo tee -a /etc/hosts
+
+# Install Docker
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable edge"
+apt-get install -y docker-ce
+sudo usermod -aG docker $USERNAME
+
+# Install Docker Compose
+curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+
+
+# create docker network 
+sudo docker network create iot
+
+# Pull mosquitto docker image
+sudo docker pull eclipse-mosquitto
+
+# Run mosquitto container
+sudo docker run -it --rm --network=iot -p 1883:1883 -p 9001:9001 --name mosquitto eclipse-mosquitto
+
+
+# Pull InfluxDB
+sudo docker pull influxdb:1.8
+
+# Run Infulx container
+docker run --network=iot -v $PWD/influxdb-data:/var/lib/influxdb --name influxdb influxdb
+
+# Pull telegraf image
+sudo docker pull telegraf
+
+# Run telegraf container with default config
+docker run --rm telegraf telegraf config > telegraf.conf
