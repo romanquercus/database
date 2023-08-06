@@ -52,3 +52,11 @@ sudo docker pull telegraf
 
 # Run telegraf container with default config
 docker run --rm telegraf telegraf config > telegraf.conf
+
+
+#comand history
+sudo docker compose down
+sudo docker compose up -d
+sudo docker exec -it database-telegraf-1 bash
+mosquitto_sub -h 192.168.1.100 -t 'villa/#'
+
