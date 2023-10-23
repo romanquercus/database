@@ -60,3 +60,17 @@ sudo docker compose up -d
 sudo docker exec -it database-telegraf-1 bash
 mosquitto_sub -h 192.168.1.100 -t 'villa/#'
 
+
+
+#mount disk and create simlink
+
+sudo mount /dev/sdb1 /media/disk/
+
+sudo ln -s /media/disk/influxdb-data/ /home/re/repos/database/influxdb-data
+sudo chown -R re:re influxdb-data
+sudo docker compose up -d
+
+
+
+
+
